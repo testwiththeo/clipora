@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/*
+ * Clipora Design Tokens
+ * Calm, professional editing-tool aesthetic.
+ * Neutral-first palette with indigo accent.
+ */
+
+@layer base {
+  :root {
+    /* Backgrounds */
+    --bg-app: #09090b;
+    --bg-surface: #111113;
+    --bg-elevated: #18181b;
+    --bg-hover: #1f1f23;
+
+    /* Borders */
+    --border-default: #27272a;
+    --border-subtle: #1e1e22;
+
+    /* Text */
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #52525b;
+
+    /* Accent */
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --accent-fg: #ffffff;
+    --accent-muted: #312e81;
+
+    /* Status */
+    --status-success: #22c55e;
+    --status-warning: #eab308;
+    --status-error: #ef4444;
+
+    /* Radius */
+    --radius-control: 8px;
+    --radius-panel: 12px;
+    --radius-overlay: 16px;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  /* Scrollbar styling for the editor aesthetic */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+}
+
+@layer components {
+  /* Panel — primary surface container */
+  .panel {
+    @apply bg-app-surface border border-line rounded-panel;
+  }
+
+  /* Panel elevated — for nested surfaces */
+  .panel-elevated {
+    @apply bg-app-elevated border border-line rounded-panel;
+  }
+
+  /* Input base style */
+  .input-base {
+    @apply bg-app-elevated border border-line rounded-control px-3 py-2 text-body text-content-primary placeholder:text-content-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-colors;
+  }
+
+  /* Button primary */
+  .btn-primary {
+    @apply bg-accent text-accent-fg rounded-control px-3 py-1.5 text-label font-medium hover:bg-accent-hover transition-colors focus:outline-none focus:ring-1 focus:ring-accent/40;
+  }
+
+  /* Button secondary */
+  .btn-secondary {
+    @apply bg-app-elevated text-content-secondary border border-line rounded-control px-3 py-1.5 text-label font-medium hover:bg-app-hover hover:text-content-primary transition-colors focus:outline-none focus:ring-1 focus:ring-line;
+  }
+
+  /* Button ghost */
+  .btn-ghost {
+    @apply text-content-secondary rounded-control px-3 py-1.5 text-label font-medium hover:bg-app-hover hover:text-content-primary transition-colors focus:outline-none;
+  }
+
+  /* Status pill */
+  .status-pill {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-meta font-medium;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t border-line;
+  }
+}
