@@ -1,5 +1,8 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,8 +17,17 @@ from app.services.episode_service import (
     delete_episode,
 )
 from app.services.youtube_service import validate_youtube_url
+from app.services.analysis.analysis_service import (
+    analyze_episode,
+    get_highlight_candidates,
+)
 
 router = APIRouter()
+
+
+class AnalyzeRequest(BaseModel):
+    target_clip_duration_min: int = 20
+    target_clip_duration_max: int = 60
 
 
 @router.get("", response_model=SuccessResponse)
@@ -119,9 +131,9 @@ async def delete_episode_endpoint(
 
 
 @router.post("/{episode_id}/analyze", response_model=SuccessResponse)
-async def analyze_episode(
+async def analyze_endpoint(
     episode_id: str,
-    body: dict | None = None,
+    body: AnalyzeRequest | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """Run segmentation and highlight scoring."""
@@ -132,8 +144,27 @@ async def analyze_episode(
             "error": {"code": "EPISODE_NOT_FOUND", "message": f"Episode {episode_id} not found"},
         })
 
-    # TODO: implement analysis pipeline
-    return {"success": True, "data": {"status": "queued"}}
+    if episode.transcript_status != "transcript_ready":
+        raise HTTPException(status_code=400, detail={
+            "success": False,
+            "error": {
+                "code": "TRANSCRIPT_NOT_READY",
+                "message": "Transcript must be ready before analysis. Current status: " + episode.transcript_status,
+            },
+        })
+
+    min_dur = body.target_clip_duration_min if body else 20
+    max_dur = body.target_clip_duration_max if body else 60
+
+    try:
+        count = await analyze_episode(episode, db, min_dur, max_dur)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail={
+            "success": False,
+            "error": {"code": "ANALYSIS_FAILED", "message": str(e)},
+        })
+
+    return {"success": True, "data": {"status": "completed", "candidates": count}}
 
 
 @router.get("/{episode_id}/highlights", response_model=SuccessResponse)
@@ -142,5 +173,30 @@ async def get_highlights(
     db: AsyncSession = Depends(get_db),
 ):
     """Get ranked candidate highlight windows."""
-    # TODO: implement lookup
-    return {"success": True, "data": {"highlights": []}}
+    episode = await get_episode(episode_id, db)
+    if not episode:
+        raise HTTPException(status_code=404, detail={
+            "success": False,
+            "error": {"code": "EPISODE_NOT_FOUND", "message": f"Episode {episode_id} not found"},
+        })
+
+    candidates = await get_highlight_candidates(episode_id, db)
+
+    return {
+        "success": True,
+        "data": {
+            "highlights": [
+                {
+                    "id": c.id,
+                    "start_ms": c.start_ms,
+                    "end_ms": c.end_ms,
+                    "title": c.title,
+                    "summary": c.summary,
+                    "score": c.score,
+                    "rationale": json.loads(c.rationale_json) if c.rationale_json else None,
+                }
+                for c in candidates
+            ],
+            "total": len(candidates),
+        },
+    }
