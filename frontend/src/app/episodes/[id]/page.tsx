@@ -7,6 +7,7 @@ import { api, type Episode } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { TranscriptViewer } from "@/components/ui/TranscriptViewer";
+import { HighlightList } from "@/components/ui/HighlightList";
 import {
   ArrowLeft,
   Trash2,
@@ -126,6 +127,13 @@ export default function EpisodeDetailPage() {
           {/* Transcript */}
           <TranscriptViewer
             episodeId={episode.id}
+            transcriptStatus={episode.transcript_status}
+          />
+
+          {/* Highlights */}
+          <HighlightList
+            episodeId={episode.id}
+            analysisStatus={episode.analysis_status}
             transcriptStatus={episode.transcript_status}
           />
         </div>
