@@ -30,6 +30,16 @@ export interface TranscriptSegment {
   source_kind: string;
 }
 
+export interface HighlightCandidate {
+  id: string;
+  start_ms: number;
+  end_ms: number;
+  title: string | null;
+  summary: string | null;
+  score: number;
+  rationale: Record<string, number | string[]> | null;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -99,8 +109,16 @@ export const api = {
     }),
 
   // Highlights
+  analyzeEpisode: (episodeId: string, minDur?: number, maxDur?: number) =>
+    request<{ status: string; candidates: number }>(`/episodes/${episodeId}/analyze`, {
+      method: "POST",
+      body: JSON.stringify({
+        target_clip_duration_min: minDur ?? 20,
+        target_clip_duration_max: maxDur ?? 60,
+      }),
+    }),
   getHighlights: (episodeId: string) =>
-    request<{ highlights: unknown[] }>(`/episodes/${episodeId}/highlights`),
+    request<{ highlights: HighlightCandidate[]; total: number }>(`/episodes/${episodeId}/highlights`),
 
   // Clips
   createClip: (data: Record<string, unknown>) =>
