@@ -40,6 +40,43 @@ export interface HighlightCandidate {
   rationale: Record<string, number | string[]> | null;
 }
 
+export interface Clip {
+  id: string;
+  episode_id: string;
+  candidate_id: string | null;
+  title: string | null;
+  start_ms: number;
+  end_ms: number;
+  subtitle_style_json: string | null;
+  framing_json: string | null;
+  grade_json: string | null;
+  preview_path: string | null;
+  output_path: string | null;
+  export_status: string;
+  source_type?: string;
+  source_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubtitlePreset {
+  id: string;
+  name: string;
+  config: Record<string, unknown>;
+  is_system: boolean;
+}
+
+export interface RenderJob {
+  id: string;
+  clip_id: string;
+  job_type: string;
+  status: string;
+  progress: number;
+  output_path: string | null;
+  error_message: string | null;
+  created_at: string | null;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -121,27 +158,49 @@ export const api = {
     request<{ highlights: HighlightCandidate[]; total: number }>(`/episodes/${episodeId}/highlights`),
 
   // Clips
-  createClip: (data: Record<string, unknown>) =>
-    request<{ clip_id: string }>("/clips", {
+  listClips: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request<{ clips: Clip[]; total: number }>(`/clips${qs}`);
+  },
+  createClip: (data: {
+    episode_id: string;
+    start_ms: number;
+    end_ms: number;
+    title?: string;
+    candidate_id?: string;
+  }) =>
+    request<Clip>("/clips", {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  getClip: (id: string) => request<unknown>(`/clips/${id}`),
+  getClip: (id: string) => request<Clip>(`/clips/${id}`),
   updateClip: (id: string, data: Record<string, unknown>) =>
-    request<unknown>(`/clips/${id}`, {
+    request<Clip>(`/clips/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  deleteClip: (id: string) =>
+    request<null>(`/clips/${id}`, { method: "DELETE" }),
 
-  // Renders
-  listRenderJobs: () => request<{ jobs: unknown[] }>("/render-jobs"),
-  getRenderJob: (id: string) => request<unknown>(`/render-jobs/${id}`),
+  // Preview Render
+  previewRender: (clipId: string, resolution?: string) =>
+    request<{ job_id: string; status: string }>(`/clips/${clipId}/preview-render`, {
+      method: "POST",
+      body: JSON.stringify({ resolution: resolution ?? "720x1280" }),
+    }),
+
+  // Render Jobs
+  listRenderJobs: (clipId?: string) => {
+    const params = clipId ? `?clip_id=${clipId}` : "";
+    return request<{ jobs: RenderJob[] }>(`/render-jobs${params}`);
+  },
+  getRenderJob: (id: string) => request<RenderJob>(`/render-jobs/${id}`),
 
   // Presets
   getExportPresets: () =>
     request<{ presets: unknown[] }>("/presets/export"),
   getSubtitlePresets: () =>
-    request<{ presets: unknown[] }>("/presets/subtitles"),
+    request<{ presets: SubtitlePreset[] }>("/presets/subtitles"),
   getGradingPresets: () =>
     request<{ presets: unknown[] }>("/presets/grading"),
 };

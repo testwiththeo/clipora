@@ -1,29 +1,33 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { api, type HighlightCandidate } from "@/lib/api";
+import { api, type HighlightCandidate, type Clip } from "@/lib/api";
 import {
   Loader2,
   Sparkles,
   Play,
   AlertCircle,
   BarChart3,
+  Scissors,
 } from "lucide-react";
 
 interface HighlightListProps {
   episodeId: string;
   analysisStatus: string;
   transcriptStatus: string;
+  onClipCreated?: (clip: Clip) => void;
 }
 
 export function HighlightList({
   episodeId,
   analysisStatus,
   transcriptStatus,
+  onClipCreated,
 }: HighlightListProps) {
   const [candidates, setCandidates] = useState<HighlightCandidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [creatingClipId, setCreatingClipId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -63,6 +67,26 @@ export function HighlightList({
     }
 
     setAnalyzing(false);
+  };
+
+  const handleCreateClip = async (candidate: HighlightCandidate) => {
+    setCreatingClipId(candidate.id);
+
+    const result = await api.createClip({
+      episode_id: episodeId,
+      candidate_id: candidate.id,
+      start_ms: candidate.start_ms,
+      end_ms: candidate.end_ms,
+      title: candidate.title ?? undefined,
+    });
+
+    if (result.success && result.data) {
+      onClipCreated?.(result.data);
+    } else {
+      setError(result.error?.message ?? "Failed to create clip");
+    }
+
+    setCreatingClipId(null);
   };
 
   // Can't analyze without transcript
@@ -156,7 +180,13 @@ export function HighlightList({
       ) : (
         <div className="max-h-[500px] divide-y divide-line overflow-y-auto">
           {candidates.map((c, idx) => (
-            <CandidateRow key={c.id} candidate={c} rank={idx + 1} />
+            <CandidateRow
+              key={c.id}
+              candidate={c}
+              rank={idx + 1}
+              onCreateClip={handleCreateClip}
+              isCreating={creatingClipId === c.id}
+            />
           ))}
         </div>
       )}
@@ -167,12 +197,15 @@ export function HighlightList({
 function CandidateRow({
   candidate,
   rank,
+  onCreateClip,
+  isCreating,
 }: {
   candidate: HighlightCandidate;
   rank: number;
+  onCreateClip: (c: HighlightCandidate) => void;
+  isCreating: boolean;
 }) {
   const durationS = Math.round((candidate.end_ms - candidate.start_ms) / 1000);
-  const scorePercent = Math.round(candidate.score * 100);
 
   return (
     <div className="flex gap-3 px-4 py-3 transition-colors hover:bg-app-hover">
@@ -202,6 +235,20 @@ function CandidateRow({
           </p>
         )}
       </div>
+
+      {/* Create Clip button */}
+      <button
+        className="btn-ghost flex-shrink-0 self-center p-1.5 text-content-muted hover:text-accent"
+        onClick={() => onCreateClip(candidate)}
+        disabled={isCreating}
+        title="Create clip from this candidate"
+      >
+        {isCreating ? (
+          <Loader2 size={15} className="animate-spin" />
+        ) : (
+          <Scissors size={15} />
+        )}
+      </button>
     </div>
   );
 }

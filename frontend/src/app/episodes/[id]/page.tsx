@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, type Episode } from "@/lib/api";
+import { api, type Episode, type Clip } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { TranscriptViewer } from "@/components/ui/TranscriptViewer";
@@ -135,6 +135,7 @@ export default function EpisodeDetailPage() {
             episodeId={episode.id}
             analysisStatus={episode.analysis_status}
             transcriptStatus={episode.transcript_status}
+            onClipCreated={(clip: Clip) => router.push(`/editor/${clip.id}`)}
           />
         </div>
 
