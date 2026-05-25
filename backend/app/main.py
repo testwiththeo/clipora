@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.database import init_db
@@ -34,3 +36,8 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+# Serve rendered previews and exports as static files
+_data_path = Path(settings.data_dir)
+_data_path.mkdir(parents=True, exist_ok=True)
+app.mount("/data", StaticFiles(directory=str(_data_path)), name="data")
