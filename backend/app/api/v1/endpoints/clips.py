@@ -14,7 +14,12 @@ from app.services.clip_service import (
     list_clips,
     delete_clip,
 )
-from app.services.render_service import create_preview_render_job, process_preview_render
+from app.services.render_service import (
+    create_preview_render_job,
+    process_preview_render,
+    create_final_render_job,
+    process_final_render,
+)
 
 router = APIRouter()
 
@@ -179,6 +184,7 @@ async def _process_render_bg(job_id: str) -> None:
 @router.post("/{clip_id}/final-render", response_model=SuccessResponse)
 async def final_render(
     clip_id: str,
+    background_tasks: BackgroundTasks,
     body: dict | None = None,
     db: AsyncSession = Depends(get_db),
 ):
@@ -190,5 +196,62 @@ async def final_render(
             "error": {"code": "CLIP_NOT_FOUND", "message": f"Clip {clip_id} not found"},
         })
 
-    # TODO: implement final render pipeline
-    return {"success": True, "data": {"job_id": None, "status": "queued"}}
+    export_preset = "youtube_shorts"
+    if body and "export_preset" in body:
+        export_preset = body["export_preset"]
+
+    try:
+        job = await create_final_render_job(clip, db, export_preset)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={
+            "success": False,
+            "error": {"code": "INVALID_REQUEST", "message": str(e)},
+        })
+
+    background_tasks.add_task(_process_final_render_bg, job.id, export_preset)
+
+    return {
+        "success": True,
+        "data": {
+            "job_id": job.id,
+            "status": "queued",
+            "export_preset": export_preset,
+        },
+    }
+
+
+async def _process_final_render_bg(job_id: str, export_preset: str) -> None:
+    """Background task wrapper for final render processing."""
+    async with async_session() as db:
+        await process_final_render(job_id, db, export_preset)
+
+
+@router.get("/{clip_id}/download")
+async def download_clip(
+    clip_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Download the exported clip file."""
+    from fastapi.responses import FileResponse
+
+    clip = await get_clip(clip_id, db)
+    if not clip or not clip.output_path:
+        raise HTTPException(status_code=404, detail={
+            "success": False,
+            "error": {"code": "EXPORT_NOT_FOUND", "message": "No export file available. Run final render first."},
+        })
+
+    from pathlib import Path
+    file_path = Path(clip.output_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail={
+            "success": False,
+            "error": {"code": "FILE_NOT_FOUND", "message": "Export file not found on disk."},
+        })
+
+    safe_title = (clip.title or clip.id).replace(" ", "_")[:50]
+    return FileResponse(
+        path=str(file_path),
+        filename=f"{safe_title}.mp4",
+        media_type="video/mp4",
+    )
