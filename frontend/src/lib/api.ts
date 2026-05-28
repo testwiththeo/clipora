@@ -77,6 +77,26 @@ export interface RenderJob {
   created_at: string | null;
 }
 
+export interface GradingPreset {
+  id: string;
+  name: string;
+  config: {
+    brightness: number;
+    contrast: number;
+    saturation: number;
+    temperature: number;
+  };
+  is_system: boolean;
+}
+
+export interface GradingConfig {
+  preset?: string;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  temperature: number;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -189,6 +209,14 @@ export const api = {
       body: JSON.stringify({ resolution: resolution ?? "720x1280" }),
     }),
 
+  // Final Export
+  finalRender: (clipId: string, exportPreset?: string) =>
+    request<{ job_id: string; status: string; export_preset: string }>(`/clips/${clipId}/final-render`, {
+      method: "POST",
+      body: JSON.stringify({ export_preset: exportPreset ?? "youtube_shorts" }),
+    }),
+  getDownloadUrl: (clipId: string) => `${API_BASE}/clips/${clipId}/download`,
+
   // Render Jobs
   listRenderJobs: (clipId?: string) => {
     const params = clipId ? `?clip_id=${clipId}` : "";
@@ -202,5 +230,10 @@ export const api = {
   getSubtitlePresets: () =>
     request<{ presets: SubtitlePreset[] }>("/presets/subtitles"),
   getGradingPresets: () =>
-    request<{ presets: unknown[] }>("/presets/grading"),
+    request<{ presets: GradingPreset[] }>("/presets/grading"),
+  saveGradingPreset: (name: string, config: GradingConfig) =>
+    request<GradingPreset>("/presets/grading", {
+      method: "POST",
+      body: JSON.stringify({ name, config }),
+    }),
 };
