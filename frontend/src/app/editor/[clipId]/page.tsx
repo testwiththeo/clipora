@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { api, type Clip, type Episode, type RenderJob } from "@/lib/api";
+import { api, type Clip, type Episode, type RenderJob, type GradingConfig } from "@/lib/api";
 import { SubtitleStylePanel } from "@/components/ui/SubtitleStylePanel";
+import { ExportPanel } from "@/components/ui/ExportPanel";
+import { ColorGradeControls } from "@/components/ui/ColorGradeControls";
 import {
   ArrowLeft,
   Play,
@@ -38,6 +40,10 @@ export default function ClipEditorPage() {
   const [endMs, setEndMs] = useState(0);
   const [title, setTitle] = useState("");
   const [subtitlePresetId, setSubtitlePresetId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Grading state
+  const [gradeConfig, setGradeConfig] = useState<GradingConfig | null>(null);
 
   // Render state
   const [renderJob, setRenderJob] = useState<RenderJob | null>(null);
@@ -57,6 +63,13 @@ export default function ClipEditorPage() {
         try {
           const style = JSON.parse(result.data.subtitle_style_json);
           if (style.preset) setSubtitlePresetId(style.preset);
+        } catch {}
+      }
+
+      // Parse grading config from stored grade
+      if (result.data.grade_json) {
+        try {
+          setGradeConfig(JSON.parse(result.data.grade_json));
         } catch {}
       }
 
@@ -98,6 +111,11 @@ export default function ClipEditorPage() {
     await api.updateClip(clipId, {
       subtitle_style: { preset: presetId },
     });
+  };
+
+  const handleGradeChange = async (grade: GradingConfig) => {
+    setGradeConfig(grade);
+    await api.updateClip(clipId, { grade });
   };
 
   const handlePreviewRender = async () => {
@@ -361,9 +379,9 @@ export default function ClipEditorPage() {
           </div>
 
           {/* Tabs */}
-          <InspectorTabs />
+          <InspectorTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {/* Details section */}
+          {/* Details section (always visible) */}
           <div className="space-y-4 border-b border-line p-4">
             <div>
               <label className="mb-1.5 block text-label text-content-secondary">
@@ -401,20 +419,39 @@ export default function ClipEditorPage() {
             )}
           </div>
 
-          {/* Subtitle style section */}
-          <SubtitleStylePanel
-            currentPresetId={subtitlePresetId}
-            onPresetChange={handleSubtitlePresetChange}
-          />
+          {/* Tab content */}
+          {activeTab === 0 && (
+            <SubtitleStylePanel
+              currentPresetId={subtitlePresetId}
+              onPresetChange={handleSubtitlePresetChange}
+            />
+          )}
+          {activeTab === 1 && (
+            <div className="p-4 text-meta text-content-muted">
+              <p>Framing controls (aspect ratio, crop mode) will be available in a future sprint.</p>
+            </div>
+          )}
+          {activeTab === 2 && (
+            <ColorGradeControls
+              currentGrade={gradeConfig}
+              onGradeChange={handleGradeChange}
+            />
+          )}
+          {activeTab === 3 && <ExportPanel clip={clip} />}
         </div>
       </div>
     </div>
   );
 }
 
-function InspectorTabs() {
+function InspectorTabs({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: number;
+  onTabChange: (tab: number) => void;
+}) {
   const tabs = ["Captions", "Frame", "Grade", "Export"];
-  const [active, setActive] = useState(0);
 
   return (
     <div className="flex border-b border-line">
@@ -422,11 +459,11 @@ function InspectorTabs() {
         <button
           key={tab}
           className={`flex-1 border-b-2 px-3 py-2 text-meta transition-colors ${
-            i === active
+            i === activeTab
               ? "border-accent text-content-primary font-medium"
               : "border-transparent text-content-muted hover:text-content-secondary"
           }`}
-          onClick={() => setActive(i)}
+          onClick={() => onTabChange(i)}
         >
           {tab}
         </button>
