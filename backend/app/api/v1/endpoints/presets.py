@@ -8,6 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.schemas.common import SuccessResponse
 from app.services.subtitle_service import get_subtitle_presets
+from app.services.grading_service import BUILTIN_GRADING_PRESETS
+from app.models.preset import Preset
+from app.utils.helpers import generate_id
 
 router = APIRouter()
 
@@ -61,30 +64,24 @@ async def list_subtitle_presets(
 async def list_grading_presets(
     db: AsyncSession = Depends(get_db),
 ):
-    """List grading presets."""
-    # Built-in grading presets
+    """List grading presets (built-in + custom)."""
     presets = [
-        {
-            "id": "none",
-            "name": "None (Original)",
-            "config": {"brightness": 0, "contrast": 1, "saturation": 1, "temperature": 0},
-        },
-        {
-            "id": "podcast_studio",
-            "name": "Podcast Studio",
-            "config": {"brightness": 0.03, "contrast": 1.08, "saturation": 1.06, "temperature": 0.02},
-        },
-        {
-            "id": "warm_vintage",
-            "name": "Warm Vintage",
-            "config": {"brightness": 0.02, "contrast": 1.05, "saturation": 0.9, "temperature": 0.08},
-        },
-        {
-            "id": "cool_modern",
-            "name": "Cool Modern",
-            "config": {"brightness": 0.01, "contrast": 1.1, "saturation": 0.95, "temperature": -0.05},
-        },
+        {"id": p["id"], "name": p["name"], "config": p["config"], "is_system": True}
+        for p in BUILTIN_GRADING_PRESETS
     ]
+
+    # Add custom presets from DB
+    result = await db.execute(
+        select(Preset).where(Preset.preset_type == "grading")
+    )
+    db_presets = result.scalars().all()
+    for p in db_presets:
+        presets.append({
+            "id": p.id,
+            "name": p.name,
+            "config": json.loads(p.config_json),
+            "is_system": False,
+        })
 
     return {"success": True, "data": {"presets": presets}}
 
@@ -95,5 +92,45 @@ async def create_grading_preset(
     db: AsyncSession = Depends(get_db),
 ):
     """Create or save a custom grading preset."""
-    # TODO: implement custom grading preset creation
-    return {"success": True, "data": None}
+    name = body.get("name")
+    config = body.get("config")
+
+    if not name or not config:
+        raise HTTPException(status_code=400, detail={
+            "success": False,
+            "error": {"code": "INVALID_REQUEST", "message": "name and config are required"},
+        })
+
+    # Validate config has required keys
+    required_keys = {"brightness", "contrast", "saturation", "temperature"}
+    if not required_keys.issubset(config.keys()):
+        raise HTTPException(status_code=400, detail={
+            "success": False,
+            "error": {
+                "code": "INVALID_CONFIG",
+                "message": f"config must contain: {', '.join(required_keys)}",
+            },
+        })
+
+    preset_id = generate_id("gp")
+    preset = Preset(
+        id=preset_id,
+        preset_type="grading",
+        name=name,
+        config_json=json.dumps(config),
+        is_system=False,
+    )
+
+    db.add(preset)
+    await db.commit()
+    await db.refresh(preset)
+
+    return {
+        "success": True,
+        "data": {
+            "id": preset.id,
+            "name": preset.name,
+            "config": config,
+            "is_system": False,
+        },
+    }
