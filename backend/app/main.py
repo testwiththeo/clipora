@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.logging import setup_logging
 from app.api.v1.router import api_router
 import app.models  # noqa: F401 — register all models with SQLAlchemy
 
@@ -14,6 +15,7 @@ import app.models  # noqa: F401 — register all models with SQLAlchemy
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
+    setup_logging(debug=settings.debug)
     await init_db()
     yield
 
