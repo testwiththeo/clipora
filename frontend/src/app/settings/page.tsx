@@ -97,9 +97,55 @@ export default function SettingsPage() {
                 <dt className="text-content-secondary">Backend</dt>
                 <dd className="text-content-primary">FastAPI + SQLite</dd>
               </div>
+              <div className="flex justify-between">
+                <dt className="text-content-secondary">Frontend</dt>
+                <dd className="text-content-primary">Next.js 16 + Tailwind</dd>
+              </div>
             </dl>
           </div>
         </section>
+
+        {/* Keyboard Shortcuts */}
+        <section className="panel">
+          <div className="border-b border-line px-4 py-3">
+            <h3 className="text-label font-medium text-content-primary">
+              Keyboard Shortcuts
+            </h3>
+          </div>
+          <div className="divide-y divide-line">
+            <ShortcutRow keys={["Space"]} description="Play / Pause preview" />
+            <ShortcutRow keys={["J"]} description="Skip backward 5s" />
+            <ShortcutRow keys={["L"]} description="Skip forward 5s" />
+            <ShortcutRow keys={["I"]} description="Set start point at current time" />
+            <ShortcutRow keys={["O"]} description="Set end point at current time" />
+            <ShortcutRow keys={["⌘", "S"]} description="Save clip" />
+            <ShortcutRow keys={["⌘", "Enter"]} description="Render preview" />
+            <ShortcutRow keys={["Esc"]} description="Close dialog" />
+          </div>
+          <div className="px-4 py-2.5">
+            <p className="text-meta text-content-muted">
+              Shortcuts marked with ⌘ use Ctrl on Windows/Linux. Active when the editor is focused.
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function ShortcutRow({ keys, description }: { keys: string[]; description: string }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-2">
+      <span className="text-body text-content-secondary">{description}</span>
+      <div className="flex gap-1">
+        {keys.map((key) => (
+          <kbd
+            key={key}
+            className="inline-flex min-w-[24px] items-center justify-center rounded-[5px] border border-line bg-app-elevated px-1.5 py-0.5 font-mono text-[11px] text-content-secondary"
+          >
+            {key}
+          </kbd>
+        ))}
       </div>
     </div>
   );

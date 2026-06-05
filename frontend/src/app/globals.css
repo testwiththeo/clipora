@@ -81,6 +81,55 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
   }
+
+  /* Selection color */
+  ::selection {
+    background: rgba(99, 102, 241, 0.3);
+    color: var(--text-primary);
+  }
+
+  /* Focus visible ring for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+
+  /* Range slider styling */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--border-default);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg-app);
+    box-shadow: 0 0 0 1px var(--accent);
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg-app);
+  }
 }
 
 @layer components {
@@ -122,5 +171,21 @@
   /* Divider */
   .divider {
     @apply border-t border-line;
+  }
+
+  /* Toast slide-in animation */
+  .animate-in {
+    animation: slideIn 0.2s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

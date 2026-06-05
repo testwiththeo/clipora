@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
+import { ToastProvider } from "@/components/ui/ToastProvider";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "Clipora",
@@ -15,7 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body>
-        <AppShell>{children}</AppShell>
+        <ErrorBoundary>
+          <ToastProvider>
+            <AppShell>{children}</AppShell>
+          </ToastProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
