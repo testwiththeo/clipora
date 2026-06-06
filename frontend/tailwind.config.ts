@@ -1,75 +1,95 @@
-import type { Config } from "tailwindcss";
+import type { Config } from "tailwindcss"
 
 const config: Config = {
-  content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
+  darkMode: "class",
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
-        app: {
-          bg: "#09090b",
-          surface: "#111113",
-          elevated: "#18181b",
-          hover: "#1f1f23",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
-        line: {
-          DEFAULT: "#27272a",
-          subtle: "#1e1e22",
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
-        content: {
-          primary: "#fafafa",
-          secondary: "#a1a1aa",
-          muted: "#52525b",
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "#6366f1",
-          hover: "#818cf8",
-          fg: "#ffffff",
-          muted: "#312e81",
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+          subtle: "hsl(var(--accent-subtle))",
         },
-        status: {
-          success: "#22c55e",
-          warning: "#eab308",
-          error: "#ef4444",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        error: "hsl(var(--error))",
       },
       borderRadius: {
-        control: "8px",
-        panel: "12px",
-        overlay: "16px",
-      },
-      fontSize: {
-        "page-title": ["28px", { lineHeight: "34px", fontWeight: "600" }],
-        "section-title": ["18px", { lineHeight: "24px", fontWeight: "600" }],
-        body: ["14px", { lineHeight: "20px", fontWeight: "400" }],
-        label: ["13px", { lineHeight: "18px", fontWeight: "500" }],
-        meta: ["12px", { lineHeight: "16px", fontWeight: "400" }],
-      },
-      spacing: {
-        "0.5": "2px",
-        "1": "4px",
-        "2": "8px",
-        "3": "12px",
-        "4": "16px",
-        "6": "24px",
-        "8": "32px",
-        "10": "40px",
-        "12": "48px",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: [
-          "Inter",
-          "ui-sans-serif",
-          "system-ui",
-          "-apple-system",
-          "sans-serif",
-        ],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "fade-in-up": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-in-right": {
+          from: { transform: "translateX(100%)" },
+          to: { transform: "translateX(0)" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.95)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.2s ease-out",
+        "fade-in-up": "fade-in-up 0.3s ease-out",
+        "slide-in-right": "slide-in-right 0.3s ease-out",
+        "scale-in": "scale-in 0.15s ease-out",
       },
     },
   },
-  plugins: [],
-};
+  plugins: [require("tailwindcss-animate")],
+}
 
-export default config;
+export default config
