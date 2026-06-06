@@ -1,27 +1,38 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-const pathTitles: Record<string, string> = {
-  "/": "Dashboard",
+const pathLabels: Record<string, string> = {
+  "/": "Home",
   "/episodes": "Episodes",
-  "/editor": "Clip Editor",
+  "/editor": "Clips",
   "/settings": "Settings",
 };
 
 export function Topbar() {
   const pathname = usePathname();
-  const title = pathTitles[pathname] || "Clipora";
+  const label = pathLabels[pathname] ?? "Clipora";
 
   return (
-    <header className="flex h-12 items-center justify-between border-b border-line bg-app-surface px-6">
-      <h2 className="text-label font-medium text-content-secondary">{title}</h2>
+    <header className="flex h-12 items-center justify-between border-b border-border px-6 glass">
+      <motion.h2
+        key={pathname}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.15 }}
+        className="text-sm font-medium text-muted-foreground"
+      >
+        {label}
+      </motion.h2>
 
       <div className="flex items-center gap-2">
-        <span className="status-pill bg-status-success/10 text-status-success">
-          <span className="h-1.5 w-1.5 rounded-full bg-status-success" />
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" />
           Connected
         </span>
+        <ThemeToggle />
       </div>
     </header>
   );

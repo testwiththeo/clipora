@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AppShell } from "@/components/layout/AppShell";
-import { ToastProvider } from "@/components/ui/ToastProvider";
-import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Clipora",
@@ -15,13 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <ErrorBoundary>
-          <ToastProvider>
-            <AppShell>{children}</AppShell>
-          </ToastProvider>
-        </ErrorBoundary>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

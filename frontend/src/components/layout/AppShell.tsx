@@ -7,14 +7,13 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-app-bg">
-      {/* Sidebar */}
+    <div className="flex h-screen overflow-hidden bg-background">
       <SidebarNav />
-
-      {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
       </div>
     </div>
   );
