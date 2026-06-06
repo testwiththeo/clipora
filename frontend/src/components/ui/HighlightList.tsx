@@ -93,17 +93,17 @@ export function HighlightList({
   if (transcriptStatus !== "transcript_ready") {
     return (
       <section className="panel">
-        <div className="border-b border-line px-4 py-3">
-          <h3 className="text-label font-medium text-content-primary">
+        <div className="border-b border-border px-4 py-3">
+          <h3 className="text-sm font-medium text-foreground">
             Highlight Candidates
           </h3>
         </div>
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <Sparkles size={20} className="mb-2 text-content-muted" />
-          <p className="text-body text-content-secondary">
+          <p className="text-sm text-foreground">
             Transcript required for analysis
           </p>
-          <p className="mt-0.5 text-meta text-content-muted">
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Highlights will appear once the transcript is ready
           </p>
         </div>
@@ -115,15 +115,15 @@ export function HighlightList({
   if (analyzing) {
     return (
       <section className="panel">
-        <div className="border-b border-line px-4 py-3">
-          <h3 className="text-label font-medium text-content-primary">
+        <div className="border-b border-border px-4 py-3">
+          <h3 className="text-sm font-medium text-foreground">
             Highlight Candidates
           </h3>
         </div>
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <Loader2 size={20} className="mb-2 animate-spin text-accent" />
-          <p className="text-body text-content-secondary">Analyzing transcript...</p>
-          <p className="mt-0.5 text-meta text-content-muted">
+          <p className="text-sm text-foreground">Analyzing transcript...</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Scoring segments for highlight potential
           </p>
         </div>
@@ -133,13 +133,13 @@ export function HighlightList({
 
   return (
     <section className="panel">
-      <div className="flex items-center justify-between border-b border-line px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-label font-medium text-content-primary">
+          <h3 className="text-sm font-medium text-foreground">
             Highlight Candidates
           </h3>
           {loaded && candidates.length > 0 && (
-            <span className="text-meta text-content-muted">
+            <span className="text-sm text-muted-foreground">
               {candidates.length} found
             </span>
           )}
@@ -159,7 +159,7 @@ export function HighlightList({
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 border-b border-line bg-status-error/5 px-4 py-2 text-meta text-status-error">
+        <div className="flex items-center gap-2 border-b border-border bg-status-error/5 px-4 py-2 text-meta text-status-error">
           <AlertCircle size={13} />
           {error}
         </div>
@@ -172,13 +172,13 @@ export function HighlightList({
       ) : loaded && candidates.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <BarChart3 size={20} className="mb-2 text-content-muted" />
-          <p className="text-body text-content-secondary">No highlights found</p>
-          <p className="mt-0.5 text-meta text-content-muted">
+          <p className="text-sm text-foreground">No highlights found</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Click Analyze to scan the transcript for clip-worthy moments
           </p>
         </div>
       ) : (
-        <div className="max-h-[500px] divide-y divide-line overflow-y-auto">
+        <div className="max-h-[500px] divide-y divide-border overflow-y-auto">
           {candidates.map((c, idx) => (
             <CandidateRow
               key={c.id}
@@ -208,7 +208,7 @@ function CandidateRow({
   const durationS = Math.round((candidate.end_ms - candidate.start_ms) / 1000);
 
   return (
-    <div className="flex gap-3 px-4 py-3 transition-colors hover:bg-app-hover">
+    <div className="flex gap-3 px-4 py-3 transition-colors hover:bg-muted/50">
       {/* Rank + Score */}
       <div className="flex flex-shrink-0 flex-col items-center gap-1 pt-0.5">
         <span className="text-meta font-medium text-content-muted">
@@ -222,7 +222,7 @@ function CandidateRow({
         <p className="text-body font-medium text-content-primary">
           {candidate.title ?? "Untitled candidate"}
         </p>
-        <div className="mt-1 flex items-center gap-3 text-meta text-content-muted">
+        <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <Play size={11} />
             {formatMs(candidate.start_ms)} – {formatMs(candidate.end_ms)}
@@ -230,7 +230,7 @@ function CandidateRow({
           <span>{durationS}s</span>
         </div>
         {candidate.summary && (
-          <p className="mt-1.5 line-clamp-2 text-meta text-content-secondary">
+          <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
             {candidate.summary}
           </p>
         )}

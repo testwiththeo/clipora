@@ -1,8 +1,18 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { api, type Episode } from "@/lib/api";
-import { Loader2, AlertCircle, Link } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Link2, Loader2, AlertCircle, Film } from "lucide-react";
 
 interface ImportDialogProps {
   open: boolean;
@@ -17,12 +27,10 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
 
   const handleImport = useCallback(async () => {
     if (!url.trim()) return;
-
     setLoading(true);
     setError(null);
 
     const result = await api.importYouTube(url.trim());
-
     if (result.success && result.data) {
       onImported(result.data.episode);
       setUrl("");
@@ -34,75 +42,58 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
     }
   }, [url, onImported, onClose]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !loading) handleImport();
-    if (e.key === "Escape") onClose();
-  };
-
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onClose}
-      />
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Link2 size={18} className="text-primary" />
+            Import Episode
+          </DialogTitle>
+          <DialogDescription>
+            Paste a YouTube URL to import a podcast episode. We'll extract metadata and download audio for processing.
+          </DialogDescription>
+        </DialogHeader>
 
-      {/* Dialog */}
-      <div className="relative z-10 w-full max-w-lg rounded-overlay border border-line bg-app-surface p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <Link size={18} className="text-accent" />
-          <h2 className="text-section-title">Import Episode</h2>
+        <div className="space-y-3">
+          <Input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !loading && handleImport()}
+            placeholder="https://www.youtube.com/watch?v=..."
+            autoFocus
+            disabled={loading}
+          />
+
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              >
+                <AlertCircle size={14} />
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <p className="mb-4 text-body text-content-secondary">
-          Paste a YouTube URL to import a podcast episode. The system will
-          extract metadata and download audio for processing.
-        </p>
-
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="https://www.youtube.com/watch?v=..."
-          className="input-base mb-3 w-full"
-          autoFocus
-          disabled={loading}
-        />
-
-        {error && (
-          <div className="mb-3 flex items-center gap-2 rounded-control bg-status-error/10 px-3 py-2 text-meta text-status-error">
-            <AlertCircle size={14} />
-            {error}
-          </div>
-        )}
-
         <div className="flex justify-end gap-2">
-          <button
-            className="btn-secondary"
-            onClick={onClose}
-            disabled={loading}
-          >
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
-          </button>
-          <button
-            className="btn-primary flex items-center gap-1.5"
-            onClick={handleImport}
-            disabled={loading || !url.trim()}
-          >
+          </Button>
+          <Button onClick={handleImport} disabled={loading || !url.trim()}>
             {loading ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                Fetching metadata...
-              </>
+              <><Loader2 size={14} className="mr-1.5 animate-spin" />Fetching...</>
             ) : (
               "Import"
             )}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

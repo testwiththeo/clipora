@@ -10,6 +10,8 @@ import {
   Film,
   History,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "http://localhost:8000";
 
@@ -104,31 +106,31 @@ export function ExportPanel({ clip }: ExportPanelProps) {
     <div className="space-y-4 p-4">
       {/* Export preset selector */}
       <div>
-        <h4 className="mb-2 flex items-center gap-2 text-label font-medium text-content-primary">
-          <Film size={14} className="text-content-muted" />
+        <h4 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+          <Film size={14} className="text-muted-foreground" />
           Export Preset
         </h4>
         <div className="space-y-1.5">
           {EXPORT_PRESETS.map((preset) => (
             <button
               key={preset.id}
-              className={`w-full rounded-control border px-3 py-2 text-left transition-colors ${
+              className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${
                 selectedPreset === preset.id
-                  ? "border-accent bg-accent-muted/20"
-                  : "border-line bg-app-elevated hover:border-content-muted hover:bg-app-hover"
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-muted hover:border-primary/30"
               }`}
               onClick={() => setSelectedPreset(preset.id)}
               disabled={exporting}
             >
               <div className="flex items-center justify-between">
-                <span className="text-body font-medium text-content-primary">
+                <span className="text-sm font-medium text-foreground">
                   {preset.name}
                 </span>
-                <span className="rounded bg-app-hover px-1.5 py-0.5 text-[10px] font-bold text-content-muted">
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
                   {preset.icon}
                 </span>
               </div>
-              <div className="mt-0.5 flex gap-3 text-meta text-content-muted">
+              <div className="mt-0.5 flex gap-3 text-xs text-muted-foreground">
                 <span>{preset.resolution}</span>
                 <span>max {preset.maxDuration}</span>
               </div>
@@ -138,43 +140,38 @@ export function ExportPanel({ clip }: ExportPanelProps) {
       </div>
 
       {/* Export button */}
-      <button
-        className="btn-primary flex w-full items-center justify-center gap-1.5 py-2.5"
+      <Button
+        className="w-full py-5"
         onClick={handleExport}
         disabled={exporting}
       >
         {exporting ? (
           <>
-            <Loader2 size={15} className="animate-spin" />
+            <Loader2 size={15} className="mr-1.5 animate-spin" />
             Exporting {exportJob?.progress ?? 0}%
           </>
         ) : (
           <>
-            <Download size={15} />
+            <Download size={15} className="mr-1.5" />
             Export Clip
           </>
         )}
-      </button>
+      </Button>
 
       {/* Progress bar */}
       {exporting && exportJob && (
-        <div className="rounded-control border border-accent/20 bg-accent-muted/10 p-3">
-          <div className="mb-1.5 flex items-center justify-between text-meta">
-            <span className="text-accent">Rendering export...</span>
-            <span className="text-content-muted">{exportJob.progress}%</span>
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="text-primary font-medium">Rendering export...</span>
+            <span className="text-muted-foreground">{exportJob.progress}%</span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-app-elevated">
-            <div
-              className="h-full rounded-full bg-accent transition-all"
-              style={{ width: `${exportJob.progress}%` }}
-            />
-          </div>
+          <Progress value={exportJob.progress} className="h-1.5" />
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 rounded-control bg-status-error/10 px-3 py-2 text-meta text-status-error">
+        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
           <AlertCircle size={13} />
           {error}
         </div>
@@ -182,15 +179,15 @@ export function ExportPanel({ clip }: ExportPanelProps) {
 
       {/* Download section */}
       {hasExport && !exporting && (
-        <div className="rounded-control border border-status-success/20 bg-status-success/5 p-3">
-          <div className="mb-2 flex items-center gap-1.5 text-meta text-status-success">
+        <div className="rounded-lg border border-success/20 bg-success/5 p-3">
+          <div className="mb-2 flex items-center gap-1.5 text-xs text-success">
             <CheckCircle2 size={13} />
             Export ready
           </div>
           <a
             href={api.getDownloadUrl(clip.id)}
             download
-            className="btn-secondary flex w-full items-center justify-center gap-1.5"
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
           >
             <Download size={14} />
             Download MP4
@@ -201,23 +198,23 @@ export function ExportPanel({ clip }: ExportPanelProps) {
       {/* Render history */}
       {history.length > 0 && (
         <div>
-          <h4 className="mb-2 flex items-center gap-2 text-label font-medium text-content-primary">
-            <History size={14} className="text-content-muted" />
+          <h4 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+            <History size={14} className="text-muted-foreground" />
             Render History
           </h4>
           <div className="max-h-40 space-y-1 overflow-y-auto">
             {history.map((job) => (
               <div
                 key={job.id}
-                className="flex items-center justify-between rounded-control bg-app-elevated px-2.5 py-1.5 text-meta"
+                className="flex items-center justify-between rounded-md bg-muted px-2.5 py-1.5 text-xs"
               >
                 <div className="flex items-center gap-2">
                   <JobStatusIcon status={job.status} />
-                  <span className="text-content-secondary">
+                  <span className="text-muted-foreground">
                     {job.job_type === "preview" ? "Preview" : "Export"}
                   </span>
                 </div>
-                <span className="text-content-muted">
+                <span className="text-muted-foreground">
                   {job.created_at
                     ? new Date(job.created_at).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -237,12 +234,12 @@ export function ExportPanel({ clip }: ExportPanelProps) {
 function JobStatusIcon({ status }: { status: string }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 size={12} className="text-status-success" />;
+      return <CheckCircle2 size={12} className="text-success" />;
     case "processing":
-      return <Loader2 size={12} className="animate-spin text-accent" />;
+      return <Loader2 size={12} className="animate-spin text-primary" />;
     case "failed":
-      return <AlertCircle size={12} className="text-status-error" />;
+      return <AlertCircle size={12} className="text-destructive" />;
     default:
-      return <div className="h-2.5 w-2.5 rounded-full bg-content-muted" />;
+      return <div className="h-2.5 w-2.5 rounded-full bg-muted-foreground" />;
   }
 }

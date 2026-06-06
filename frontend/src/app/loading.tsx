@@ -1,20 +1,17 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
 export default function Loading() {
   return (
-    <div className="space-y-6 animate-pulse">
-      {/* Header skeleton */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="h-8 w-48 rounded-control bg-app-elevated" />
-          <div className="mt-2 h-4 w-72 rounded-control bg-app-elevated" />
-        </div>
-        <div className="h-8 w-32 rounded-control bg-app-elevated" />
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div>
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="mt-2 h-4 w-72" />
       </div>
-
-      {/* Content skeleton */}
-      <div className="panel p-4 space-y-4">
-        <div className="h-4 w-full rounded-control bg-app-elevated" />
-        <div className="h-4 w-3/4 rounded-control bg-app-elevated" />
-        <div className="h-4 w-5/6 rounded-control bg-app-elevated" />
+      <Skeleton className="h-11 w-full rounded-lg" />
+      <div className="space-y-3">
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
       </div>
     </div>
   );

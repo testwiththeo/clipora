@@ -2,6 +2,7 @@
 
 import { Component, type ReactNode } from "react";
 import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   children: ReactNode;
@@ -29,19 +30,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <AlertCircle size={28} className="mb-3 text-status-error" />
-          <h2 className="mb-1 text-section-title text-content-primary">
+          <AlertCircle size={28} className="mb-3 text-destructive" />
+          <h2 className="mb-1 text-lg font-semibold text-foreground">
             Something went wrong
           </h2>
-          <p className="mb-4 max-w-md text-body text-content-secondary">
+          <p className="mb-4 max-w-md text-sm text-muted-foreground">
             {this.state.error?.message ?? "An unexpected error occurred."}
           </p>
-          <button
-            className="btn-secondary"
+          <Button
+            variant="outline"
             onClick={() => this.setState({ hasError: false, error: null })}
           >
             Try again
-          </button>
+          </Button>
         </div>
       );
     }

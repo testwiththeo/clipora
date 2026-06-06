@@ -29,7 +29,7 @@ export function SubtitleStylePanel({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-4 text-meta text-content-muted">
+      <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
         <Loader2 size={14} className="animate-spin" />
         Loading presets...
       </div>
@@ -39,8 +39,8 @@ export function SubtitleStylePanel({
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-center gap-2">
-        <Type size={14} className="text-content-muted" />
-        <h4 className="text-label font-medium text-content-primary">
+        <Type size={14} className="text-muted-foreground" />
+        <h4 className="text-sm font-medium text-foreground">
           Subtitle Style
         </h4>
       </div>
@@ -50,25 +50,25 @@ export function SubtitleStylePanel({
         {presets.map((preset) => (
           <button
             key={preset.id}
-            className={`w-full rounded-control border px-3 py-2.5 text-left transition-colors ${
+            className={`w-full rounded-md border px-3 py-2.5 text-left transition-colors ${
               currentPresetId === preset.id
-                ? "border-accent bg-accent-muted/20 text-content-primary"
-                : "border-line bg-app-elevated text-content-secondary hover:border-content-muted hover:bg-app-hover"
+                ? "border-primary bg-primary/10 text-foreground"
+                : "border-border bg-muted text-muted-foreground hover:border-primary/30 hover:bg-muted/80"
             }`}
             onClick={() => onPresetChange(preset.id)}
           >
             <div className="flex items-center justify-between">
-              <span className="text-body font-medium">{preset.name}</span>
+              <span className="text-sm font-medium">{preset.name}</span>
               {preset.is_system && (
-                <span className="text-[10px] text-content-muted uppercase">Built-in</span>
+                <span className="text-[10px] text-muted-foreground uppercase">Built-in</span>
               )}
             </div>
-            <div className="mt-1 flex gap-3 text-meta text-content-muted">
+            <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
               <span>{String(preset.config.font_name ?? "")}</span>
               <span>{String(preset.config.font_size ?? "")}px</span>
               {Boolean(preset.config.bold) && <span className="font-bold">Bold</span>}
               <span
-                className="inline-block h-3 w-3 rounded-sm border border-line"
+                className="inline-block h-3 w-3 rounded-sm border border-border"
                 style={{ backgroundColor: String(preset.config.primary_color ?? "#fff") }}
               />
             </div>
@@ -78,9 +78,9 @@ export function SubtitleStylePanel({
 
       {/* Preview swatch */}
       {currentPresetId && (
-        <div className="rounded-control border border-line bg-black/40 p-4 text-center">
+        <div className="rounded-md border border-border bg-black/40 p-4 text-center">
           <p
-            className="text-body"
+            className="text-sm"
             style={{
               color: String(
                 presets.find((p) => p.id === currentPresetId)?.config

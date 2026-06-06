@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { api, type TranscriptSegment } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import { Loader2, FileText, AlertCircle, RotateCcw, Mic } from "lucide-react";
 
 interface TranscriptViewerProps {
@@ -84,9 +85,9 @@ export function TranscriptViewer({ episodeId, transcriptStatus }: TranscriptView
 
   if (transcriptStatus === "failed" && !loaded) {
     return (
-      <div className="panel">
-        <div className="border-b border-line px-4 py-3">
-          <h3 className="text-label font-medium text-content-primary">Transcript</h3>
+      <div className="border border-border bg-card rounded-xl">
+        <div className="border-b border-border px-4 py-3">
+          <h3 className="text-sm text-foreground">Transcript</h3>
         </div>
         <div className="p-4">
           <div className="mb-3 flex items-center gap-2 text-body text-status-error">
@@ -129,11 +130,11 @@ export function TranscriptViewer({ episodeId, transcriptStatus }: TranscriptView
   }
 
   return (
-    <div className="panel">
-      <div className="flex items-center justify-between border-b border-line px-4 py-3">
+    <div className="border border-border bg-card rounded-xl">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-label font-medium text-content-primary">Transcript</h3>
-          <span className="text-meta text-content-muted">
+          <h3 className="text-sm text-foreground">Transcript</h3>
+          <span className="text-sm text-muted-foreground">
             {segments.length} segments
           </span>
         </div>
@@ -148,17 +149,17 @@ export function TranscriptViewer({ episodeId, transcriptStatus }: TranscriptView
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 border-b border-line bg-status-error/5 px-4 py-2 text-meta text-status-error">
+        <div className="flex items-center gap-2 border-b border-border bg-status-error/5 px-4 py-2 text-meta text-status-error">
           <AlertCircle size={13} />
           {error}
         </div>
       )}
 
-      <div className="max-h-[500px] divide-y divide-line overflow-y-auto">
+      <div className="max-h-[500px] divide-y divide-border overflow-y-auto">
         {segments.map((seg) => (
           <div
             key={seg.id}
-            className="flex gap-3 px-4 py-2.5 transition-colors hover:bg-app-hover"
+            className="flex gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50"
           >
             <span className="mt-0.5 w-14 flex-shrink-0 font-mono text-meta text-accent">
               {formatMs(seg.start_ms)}
@@ -183,14 +184,14 @@ function TranscriptPlaceholder({
   hint: string;
 }) {
   return (
-    <div className="panel">
-      <div className="border-b border-line px-4 py-3">
-        <h3 className="text-label font-medium text-content-primary">Transcript</h3>
+    <div className="border border-border bg-card rounded-xl">
+      <div className="border-b border-border px-4 py-3">
+        <h3 className="text-sm text-foreground">Transcript</h3>
       </div>
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <div className="mb-2 text-content-muted">{icon}</div>
-        <p className="text-body text-content-secondary">{message}</p>
-        {hint && <p className="mt-0.5 text-meta text-content-muted">{hint}</p>}
+        <p className="text-sm text-muted-foreground">{message}</p>
+        {hint && <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>}
       </div>
     </div>
   );

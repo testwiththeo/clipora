@@ -93,7 +93,7 @@ export function ColorGradeControls({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-4 text-meta text-content-muted">
+      <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
         <Loader2 size={14} className="animate-spin" />
         Loading presets...
       </div>
@@ -110,14 +110,14 @@ export function ColorGradeControls({
     <div className="space-y-4 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Palette size={14} className="text-content-muted" />
-          <h4 className="text-label font-medium text-content-primary">
+          <Palette size={14} className="text-muted-foreground" />
+          <h4 className="text-sm font-medium text-foreground">
             Color Grading
           </h4>
         </div>
         {hasChanges && (
           <button
-            className="btn-ghost p-1 text-content-muted hover:text-content-primary"
+            className="p-1 text-muted-foreground hover:text-foreground rounded-md transition-colors"
             onClick={handleReset}
             title="Reset to default"
           >
@@ -131,14 +131,14 @@ export function ColorGradeControls({
         {presets.map((preset) => (
           <button
             key={preset.id}
-            className={`rounded-control border px-2.5 py-1.5 text-left transition-colors ${
+            className={`rounded-md border px-2.5 py-1.5 text-left transition-colors ${
               activePresetId === preset.id
-                ? "border-accent bg-accent-muted/20 text-content-primary"
-                : "border-line bg-app-elevated text-content-secondary hover:border-content-muted hover:bg-app-hover"
+                ? "border-primary bg-primary/10 text-foreground"
+                : "border-border bg-muted text-muted-foreground hover:border-primary/30"
             }`}
             onClick={() => handlePresetSelect(preset.id)}
           >
-            <span className="text-meta font-medium">{preset.name}</span>
+            <span className="text-xs font-medium">{preset.name}</span>
           </button>
         ))}
       </div>
@@ -195,16 +195,16 @@ export function ColorGradeControls({
 
       {/* Save custom preset */}
       {hasChanges && (
-        <div className="flex gap-2 border-t border-line pt-3">
+        <div className="flex gap-2 border-t border-border pt-3">
           <input
             type="text"
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
             placeholder="Preset name..."
-            className="input-base flex-1 text-meta"
+            className="flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
           <button
-            className="btn-secondary flex items-center gap-1"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 disabled:opacity-50"
             onClick={handleSavePreset}
             disabled={!saveName.trim() || saving}
           >
@@ -239,8 +239,8 @@ function SliderControl({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <span className="text-meta text-content-secondary">{label}</span>
-        <span className="font-mono text-meta text-content-muted">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="font-mono text-xs text-muted-foreground">
           {displayValue}
         </span>
       </div>
