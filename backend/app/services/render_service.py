@@ -132,8 +132,10 @@ async def process_preview_render(job_id: str, db: AsyncSession) -> None:
         await db.commit()
 
         # Build FFmpeg command
-        # Use audio file + subtitle burn-in for preview
+        # Use audio file + color background + subtitle burn-in for preview
         width, height = 720, 1280
+        start_s = clip.start_ms / 1000
+        duration_s = (clip.end_ms - clip.start_ms) / 1000
 
         # Build video filter chain: grading → subtitles
         grade = parse_clip_grade(clip.grade_json)
@@ -147,14 +149,15 @@ async def process_preview_render(job_id: str, db: AsyncSession) -> None:
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
+            "-ss", f"{start_s:.3f}",
             "-i", episode.audio_path,
-            "-ss", f"{clip.start_ms / 1000:.3f}",
-            "-t", f"{(clip.end_ms - clip.start_ms) / 1000:.3f}",
-            "-f", "lavfi", "-i", f"color=c=#111113:s={width}x{height}:d={(clip.end_ms - clip.start_ms) / 1000:.3f}",
+            "-f", "lavfi", "-i", f"color=c=#1a1a2e:s={width}x{height}:d={duration_s:.3f}:r=30",
+            "-t", f"{duration_s:.3f}",
             "-vf", vf_string,
             "-map", "1:v", "-map", "0:a",
-            "-c:v", "libx264", "-preset", "fast",
+            "-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart",
             "-shortest",
             output_path,
         ]
@@ -369,6 +372,7 @@ async def process_final_render(job_id: str, db: AsyncSession, export_preset: str
         # Build high-quality FFmpeg command
         width = preset["width"]
         height = preset["height"]
+        start_s = clip.start_ms / 1000
         duration_s = (clip.end_ms - clip.start_ms) / 1000
 
         # Build video filter chain: grading → subtitles
@@ -383,10 +387,10 @@ async def process_final_render(job_id: str, db: AsyncSession, export_preset: str
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
+            "-ss", f"{start_s:.3f}",
             "-i", episode.audio_path,
-            "-ss", f"{clip.start_ms / 1000:.3f}",
+            "-f", "lavfi", "-i", f"color=c=#0a0a0a:s={width}x{height}:d={duration_s:.3f}:r=30",
             "-t", f"{duration_s:.3f}",
-            "-f", "lavfi", "-i", f"color=c=#0a0a0a:s={width}x{height}:d={duration_s:.3f}",
             "-vf", vf_string,
             "-map", "1:v", "-map", "0:a",
             "-c:v", "libx264",

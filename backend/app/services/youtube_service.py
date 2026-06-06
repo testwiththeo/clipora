@@ -92,6 +92,7 @@ async def download_audio(url: str, output_dir: str) -> str:
     """Download audio track from YouTube video.
 
     Returns path to the downloaded audio file.
+    Raises RuntimeError if the download fails or produces an empty file.
     """
     cmd = [
         "yt-dlp",
@@ -120,5 +121,15 @@ async def download_audio(url: str, output_dir: str) -> str:
 
     video_id = extract_video_id(url)
     audio_path = f"{output_dir}/{video_id}.mp3"
-    logger.info(f"Audio downloaded: {audio_path}")
+
+    # Validate the output file exists and has real content
+    from pathlib import Path
+    file = Path(audio_path)
+    if not file.exists() or file.stat().st_size < 1024:
+        raise RuntimeError(
+            f"yt-dlp produced empty or missing audio file at {audio_path} "
+            f"(size={file.stat().st_size if file.exists() else 'not found'})"
+        )
+
+    logger.info(f"Audio downloaded: {audio_path} ({file.stat().st_size / 1024 / 1024:.1f} MB)")
     return audio_path
