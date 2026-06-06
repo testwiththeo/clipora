@@ -1,20 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { motion } from "framer-motion";
+import { Link2, Loader2, Plus } from "lucide-react";
 import { api, type Episode } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ImportHero } from "@/components/ui/import-hero";
+import { ProcessingCard } from "@/components/ui/processing-card";
+import { EpisodeCard } from "@/components/ui/episode-card";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ImportDialog } from "@/components/ui/ImportDialog";
-import { StatusPill } from "@/components/ui/StatusPill";
-import { Film, Scissors, Plus } from "lucide-react";
 
-export default function DashboardPage() {
+export default function HomePage() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [importOpen, setImportOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importStep, setImportStep] = useState(0);
+  const [importTitle, setImportTitle] = useState("");
+  const [importUrl, setImportUrl] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
 
   const fetchEpisodes = useCallback(async () => {
-    const result = await api.listEpisodes({ limit: "5" });
+    const result = await api.listEpisodes();
     if (result.success && result.data) {
       setEpisodes(result.data.episodes);
     }
@@ -25,148 +32,111 @@ export default function DashboardPage() {
     fetchEpisodes();
   }, [fetchEpisodes]);
 
-  const handleImported = (episode: Episode) => {
+  // Poll episode status when importing
+  useEffect(() => {
+    if (!importing || !importTitle) return;
+
+    const interval = setInterval(async () => {
+      const result = await api.listEpisodes();
+      if (result.success && result.data) {
+        const ep = result.data.episodes.find(
+          (e) => e.title === importTitle || e.source_url === importUrl
+        );
+        if (ep) {
+          if (ep.transcript_status === "transcript_ready" || ep.transcript_status === "ready") {
+            setImporting(false);
+            setImportTitle("");
+            setImportUrl("");
+            setEpisodes(result.data.episodes);
+          } else if (ep.transcript_status === "failed") {
+            setImporting(false);
+            setImportError("Import failed: " + (ep.error_message ?? "Unknown error"));
+            setEpisodes(result.data.episodes);
+          }
+          // Update step based on status
+          if (ep.transcript_status === "importing") setImportStep(0);
+          else if (ep.audio_path) setImportStep(1);
+          else if (ep.transcript_status === "transcript_ready") setImportStep(2);
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [importing, importTitle, importUrl]);
+
+  const handleImport = async (episode: Episode) => {
     setEpisodes((prev) => [episode, ...prev]);
+    setImporting(true);
+    setImportTitle(episode.title);
+    setImportUrl(episode.source_url ?? "");
+    setImportStep(0);
   };
 
+  const handleBarImport = async () => {
+    if (!importUrl.trim()) return;
+    setImportError(null);
+
+    const result = await api.importYouTube(importUrl.trim());
+    if (result.success && result.data) {
+      handleImport(result.data.episode);
+    } else {
+      setImportError(result.error?.message ?? "Import failed");
+    }
+  };
+
+  // Show processing card while importing
+  if (importing) {
+    return <ProcessingCard title={importTitle} step={importStep} />;
+  }
+
+  // Show hero for empty state
+  if (!loading && episodes.length === 0) {
+    return <ImportHero onImported={handleImport} />;
+  }
+
+  // Episode list with compact import bar
   return (
-    <div>
+    <div className="max-w-3xl mx-auto space-y-6">
       <PageHeader
-        title="Dashboard"
-        description="Quick overview of your recent work"
-        actions={
-          <button
-            className="btn-primary flex items-center gap-1.5"
-            onClick={() => setImportOpen(true)}
-          >
-            <Plus size={14} />
-            Import Episode
-          </button>
-        }
+        title="Home"
+        description={`${episodes.length} episode${episodes.length !== 1 ? "s" : ""}`}
       />
 
-      <ImportDialog
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
-        onImported={handleImported}
-      />
-
-      <div className="space-y-6">
-        {/* Recent Episodes */}
-        <section className="panel">
-          <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <h3 className="text-label font-medium text-content-primary">
-              Recent Episodes
-            </h3>
-            <Link
-              href="/episodes"
-              className="text-meta text-accent hover:text-accent-hover transition-colors"
-            >
-              View all
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="p-8 text-center text-meta text-content-muted">
-              Loading...
-            </div>
-          ) : episodes.length === 0 ? (
-            <div className="p-4">
-              <EmptyState
-                icon={<Film size={20} />}
-                message="No episodes yet"
-                hint="Import your first podcast episode to get started"
-              />
-            </div>
-          ) : (
-            <div className="divide-y divide-line">
-              {episodes.map((ep) => (
-                <Link
-                  key={ep.id}
-                  href={`/episodes/${ep.id}`}
-                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-app-hover"
-                >
-                  {/* Thumbnail */}
-                  {ep.thumbnail_url ? (
-                    <img
-                      src={ep.thumbnail_url}
-                      alt=""
-                      className="h-10 w-16 flex-shrink-0 rounded-control bg-app-elevated object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-16 flex-shrink-0 items-center justify-center rounded-control bg-app-elevated text-content-muted">
-                      <Film size={14} />
-                    </div>
-                  )}
-
-                  {/* Info */}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-body text-content-primary">
-                      {ep.title}
-                    </p>
-                    <p className="truncate text-meta text-content-muted">
-                      {ep.channel_name ?? "Unknown channel"}
-                      {ep.duration_seconds
-                        ? ` · ${formatDuration(ep.duration_seconds)}`
-                        : ""}
-                    </p>
-                  </div>
-
-                  <StatusPill status={ep.transcript_status} />
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Recent Clips */}
-        <section className="panel">
-          <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <h3 className="text-label font-medium text-content-primary">
-              Recent Clips
-            </h3>
-            <Link
-              href="/editor"
-              className="text-meta text-accent hover:text-accent-hover transition-colors"
-            >
-              View all
-            </Link>
-          </div>
-          <div className="p-4">
-            <EmptyState
-              icon={<Scissors size={20} />}
-              message="No clips yet"
-              hint="Create clips from episode highlights"
-            />
-          </div>
-        </section>
+      {/* Compact import bar */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Link2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="url"
+            placeholder="Paste a YouTube URL..."
+            value={importUrl}
+            onChange={(e) => setImportUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleBarImport()}
+            className="pl-10"
+          />
+        </div>
+        <Button onClick={handleBarImport} disabled={!importUrl.trim()}>
+          <Plus size={16} className="mr-1.5" />
+          Import
+        </Button>
       </div>
+
+      {importError && (
+        <p className="text-sm text-destructive">{importError}</p>
+      )}
+
+      {/* Episode list */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 size={24} className="animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {episodes.map((ep, i) => (
+            <EpisodeCard key={ep.id} episode={ep} index={i} />
+          ))}
+        </div>
+      )}
     </div>
   );
-}
-
-function EmptyState({
-  icon,
-  message,
-  hint,
-}: {
-  icon: React.ReactNode;
-  message: string;
-  hint: string;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <div className="mb-2 text-content-muted">{icon}</div>
-      <p className="text-body text-content-secondary">{message}</p>
-      <p className="mt-0.5 text-meta text-content-muted">{hint}</p>
-    </div>
-  );
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
