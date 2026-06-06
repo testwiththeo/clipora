@@ -2,11 +2,19 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { api, type Clip } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Scissors, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Scissors, Trash2, Download, ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function EditorPage() {
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "http://localhost:8000";
+
+export default function ClipsListPage() {
   const [clips, setClips] = useState<Clip[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -36,71 +44,89 @@ export default function EditorPage() {
     }
   };
 
-  return (
-    <div>
-      <PageHeader
-        title="Clips"
-        description={`${total} clip${total !== 1 ? "s" : ""}`}
-      />
-
-      {/* Clip List */}
-      <div className="panel">
-        <div className="grid grid-cols-12 gap-4 border-b border-line px-4 py-2.5 text-meta text-content-muted">
-          <div className="col-span-5">Title</div>
-          <div className="col-span-2">Episode</div>
-          <div className="col-span-2">Timing</div>
-          <div className="col-span-2">Status</div>
-          <div className="col-span-1 text-right">Actions</div>
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <PageHeader title="Clips" />
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+          ))}
         </div>
+      </div>
+    );
+  }
 
-        {loading ? (
-          <div className="p-8 text-center text-meta text-content-muted">
-            Loading...
-          </div>
-        ) : clips.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Scissors size={24} className="mb-2 text-content-muted" />
-            <p className="text-body text-content-secondary">No clips yet</p>
-            <p className="mt-0.5 text-meta text-content-muted">
-              Create clips from highlight candidates on an episode detail page
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-line">
-            {clips.map((clip) => {
-              const startS = Math.round(clip.start_ms / 1000);
-              const endS = Math.round(clip.end_ms / 1000);
-              const duration = endS - startS;
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <PageHeader title="Clips" description={`${total} clip${total !== 1 ? "s" : ""}`} />
 
-              return (
+      {clips.length === 0 ? (
+        <EmptyState
+          icon={<Scissors size={28} />}
+          title="No clips yet"
+          description="Import an episode on the Home page, then create clips from the AI Picks."
+          action={
+            <Button asChild>
+              <Link href="/">Go to Home</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-3">
+          {clips.map((clip, i) => {
+            const startS = Math.round(clip.start_ms / 1000);
+            const endS = Math.round(clip.end_ms / 1000);
+            const duration = endS - startS;
+
+            return (
+              <motion.div
+                key={clip.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.2 }}
+              >
                 <Link
-                  key={clip.id}
                   href={`/editor/${clip.id}`}
-                  className="grid grid-cols-12 items-center gap-4 px-4 py-3 transition-colors hover:bg-app-hover"
+                  className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/20"
                 >
-                  <div className="col-span-5 min-w-0">
-                    <p className="truncate text-body text-content-primary">
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                       {clip.title ?? "Untitled clip"}
                     </p>
-                    <p className="truncate text-meta text-content-muted">
-                      {clip.id}
-                    </p>
+                    <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{formatDuration(startS)} – {formatDuration(endS)}</span>
+                      <span>{duration}s</span>
+                      <span className="truncate">{clip.episode_id}</span>
+                    </div>
                   </div>
-                  <div className="col-span-2 truncate text-body text-content-secondary">
-                    {clip.episode_id}
-                  </div>
-                  <div className="col-span-2 text-body text-content-secondary">
-                    {formatDuration(startS)} – {formatDuration(endS)}
-                    <span className="ml-2 text-meta text-content-muted">
-                      ({duration}s)
-                    </span>
-                  </div>
-                  <div className="col-span-2">
+
+                  {/* Status + actions */}
+                  <div className="flex items-center gap-2">
                     <StatusBadge status={clip.export_status} />
-                  </div>
-                  <div className="col-span-1 text-right">
+
+                    {clip.output_path && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const a = document.createElement("a");
+                          a.href = `${API_BASE}/${clip.output_path}`;
+                          a.download = "";
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }}
+                        className="p-1.5 text-muted-foreground hover:text-success transition-colors"
+                        title="Download"
+                      >
+                        <Download size={14} />
+                      </button>
+                    )}
+
                     <button
-                      className="btn-ghost p-1 text-content-muted hover:text-status-error"
+                      className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
                       onClick={(e) => handleDelete(clip.id, e)}
                       title="Delete clip"
                     >
@@ -108,28 +134,24 @@ export default function EditorPage() {
                     </button>
                   </div>
                 </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    draft: "bg-content-muted/10 text-content-muted",
-    ready: "bg-status-success/10 text-status-success",
-    rendering: "bg-accent-muted/30 text-accent",
-    exported: "bg-status-success/10 text-status-success",
+  const config: Record<string, { label: string; variant: "success" | "warning" | "error" | "secondary" }> = {
+    draft: { label: "Draft", variant: "secondary" },
+    exported: { label: "Exported", variant: "success" },
+    rendering: { label: "Rendering", variant: "warning" },
+    failed: { label: "Failed", variant: "error" },
   };
-
-  return (
-    <span className={`status-pill ${colors[status] ?? colors.draft}`}>
-      {status}
-    </span>
-  );
+  const c = config[status] ?? config.draft;
+  return <Badge variant={c.variant}>{c.label}</Badge>;
 }
 
 function formatDuration(seconds: number): string {

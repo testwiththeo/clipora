@@ -3,10 +3,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { api, type Clip, type Episode, type RenderJob, type GradingConfig } from "@/lib/api";
 import { SubtitleStylePanel } from "@/components/ui/SubtitleStylePanel";
-import { ExportPanel } from "@/components/ui/ExportPanel";
 import { ColorGradeControls } from "@/components/ui/ColorGradeControls";
+import { ExportPanel } from "@/components/ui/ExportPanel";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft,
   Play,
@@ -18,6 +26,7 @@ import {
   MonitorPlay,
   CheckCircle2,
   AlertCircle,
+  Download,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "http://localhost:8000";
@@ -35,17 +44,12 @@ export default function ClipEditorPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Editable fields
   const [startMs, setStartMs] = useState(0);
   const [endMs, setEndMs] = useState(0);
   const [title, setTitle] = useState("");
   const [subtitlePresetId, setSubtitlePresetId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
-
-  // Grading state
   const [gradeConfig, setGradeConfig] = useState<GradingConfig | null>(null);
-
-  // Render state
   const [renderJob, setRenderJob] = useState<RenderJob | null>(null);
   const [rendering, setRendering] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -58,27 +62,19 @@ export default function ClipEditorPage() {
       setEndMs(result.data.end_ms);
       setTitle(result.data.title ?? "");
 
-      // Parse subtitle preset from stored style
       if (result.data.subtitle_style_json) {
         try {
           const style = JSON.parse(result.data.subtitle_style_json);
           if (style.preset) setSubtitlePresetId(style.preset);
         } catch {}
       }
-
-      // Parse grading config from stored grade
       if (result.data.grade_json) {
-        try {
-          setGradeConfig(JSON.parse(result.data.grade_json));
-        } catch {}
+        try { setGradeConfig(JSON.parse(result.data.grade_json)); } catch {}
       }
-
-      // Check for existing preview
       if (result.data.preview_path) {
         setPreviewUrl(`${API_BASE}/${result.data.preview_path}`);
       }
 
-      // Fetch episode for video URL
       const epResult = await api.getEpisode(result.data.episode_id);
       if (epResult.success && epResult.data) {
         setEpisode(epResult.data);
@@ -89,28 +85,18 @@ export default function ClipEditorPage() {
     setLoading(false);
   }, [clipId]);
 
-  useEffect(() => {
-    fetchClip();
-  }, [fetchClip]);
+  useEffect(() => { fetchClip(); }, [fetchClip]);
 
   const handleSave = async () => {
     setSaving(true);
-    const result = await api.updateClip(clipId, {
-      start_ms: startMs,
-      end_ms: endMs,
-      title: title,
-    });
-    if (result.success && result.data) {
-      setClip(result.data);
-    }
+    const result = await api.updateClip(clipId, { start_ms: startMs, end_ms: endMs, title });
+    if (result.success && result.data) setClip(result.data);
     setSaving(false);
   };
 
   const handleSubtitlePresetChange = async (presetId: string) => {
     setSubtitlePresetId(presetId);
-    await api.updateClip(clipId, {
-      subtitle_style: { preset: presetId },
-    });
+    await api.updateClip(clipId, { subtitle_style: { preset: presetId } });
   };
 
   const handleGradeChange = async (grade: GradingConfig) => {
@@ -121,22 +107,17 @@ export default function ClipEditorPage() {
   const handlePreviewRender = async () => {
     setRendering(true);
     setError(null);
-
     const result = await api.previewRender(clipId);
 
     if (result.success && result.data) {
       setRenderJob({ id: result.data.job_id, status: "queued" } as RenderJob);
-
-      // Poll for completion
       const pollInterval = setInterval(async () => {
         const jobResult = await api.getRenderJob(result.data!.job_id);
         if (jobResult.success && jobResult.data) {
           setRenderJob(jobResult.data);
-
           if (jobResult.data.status === "completed") {
             clearInterval(pollInterval);
             setRendering(false);
-            // Refresh clip to get preview path
             const refreshResult = await api.getClip(clipId);
             if (refreshResult.success && refreshResult.data?.preview_path) {
               setPreviewUrl(`${API_BASE}/${refreshResult.data.preview_path}`);
@@ -148,12 +129,7 @@ export default function ClipEditorPage() {
           }
         }
       }, 2000);
-
-      // Safety timeout: stop polling after 2 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        setRendering(false);
-      }, 120000);
+      setTimeout(() => { clearInterval(pollInterval); setRendering(false); }, 120000);
     } else {
       setError(result.error?.message ?? "Failed to start render");
       setRendering(false);
@@ -162,11 +138,7 @@ export default function ClipEditorPage() {
 
   const togglePlay = () => {
     if (!videoRef.current) return;
-    if (playing) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-    }
+    if (playing) videoRef.current.pause(); else videoRef.current.play();
     setPlaying(!playing);
   };
 
@@ -176,26 +148,26 @@ export default function ClipEditorPage() {
     setCurrentTime(ms);
   };
 
-  const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    setCurrentTime(videoRef.current.currentTime * 1000);
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <p className="text-body text-content-muted">Loading clip...</p>
+      <div className="space-y-4 max-w-6xl mx-auto">
+        <Skeleton className="h-8 w-48" />
+        <div className="flex gap-4 h-[calc(100vh-10rem)]">
+          <Skeleton className="flex-1 rounded-xl" />
+          <Skeleton className="w-80 rounded-xl" />
+        </div>
       </div>
     );
   }
 
   if (error && !clip) {
     return (
-      <div className="flex flex-col items-center justify-center py-24">
-        <p className="text-body text-content-secondary">{error}</p>
-        <Link href="/editor" className="mt-3 text-meta text-accent hover:text-accent-hover">
-          Back to clips
-        </Link>
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <AlertCircle size={28} className="mb-3 text-destructive" />
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <Button variant="link" asChild className="mt-3">
+          <Link href="/editor">Back to clips</Link>
+        </Button>
       </div>
     );
   }
@@ -205,163 +177,139 @@ export default function ClipEditorPage() {
   const clipDurationS = (endMs - startMs) / 1000;
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col">
+    <div className="flex h-[calc(100vh-7rem)] flex-col max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
-        <Link
-          href="/editor"
-          className="inline-flex items-center gap-1.5 text-meta text-content-muted transition-colors hover:text-content-secondary"
-        >
-          <ArrowLeft size={14} />
-          All Clips
-        </Link>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/editor">
+            <ArrowLeft size={14} className="mr-1.5" />
+            All Clips
+          </Link>
+        </Button>
 
         <div className="flex items-center gap-2">
-          <button
-            className="btn-secondary flex items-center gap-1.5"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handlePreviewRender}
             disabled={rendering}
           >
             {rendering ? (
-              <Loader2 size={14} className="animate-spin" />
+              <><Loader2 size={14} className="mr-1.5 animate-spin" />Rendering {renderJob?.progress ?? 0}%</>
             ) : (
-              <MonitorPlay size={14} />
+              <><MonitorPlay size={14} className="mr-1.5" />{previewUrl ? "Re-render" : "Preview"}</>
             )}
-            {rendering
-              ? `Rendering ${renderJob?.progress ?? 0}%`
-              : previewUrl
-                ? "Re-render Preview"
-                : "Render Preview"}
-          </button>
-          <button
-            className="btn-primary flex items-center gap-1.5"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <Save size={14} className="mr-1.5" />}
             Save
-          </button>
+          </Button>
+
+          <Button size="sm" className="bg-primary" asChild>
+            <Link href={`/editor/${clipId}?export=true`}>
+              <Download size={14} className="mr-1.5" />
+              Export
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* Error banner */}
       {error && (
-        <div className="mb-3 flex items-center gap-2 rounded-control border border-status-error/30 bg-status-error/5 px-4 py-2 text-body text-status-error">
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive"
+        >
           <AlertCircle size={15} />
           {error}
-        </div>
+        </motion.div>
       )}
 
       {/* Render progress */}
       {rendering && renderJob && (
-        <div className="mb-3 rounded-control border border-accent/20 bg-accent-muted/10 px-4 py-2">
-          <div className="mb-1 flex items-center justify-between text-meta">
-            <span className="text-accent">Rendering preview...</span>
-            <span className="text-content-muted">{renderJob.progress}%</span>
+        <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2">
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="text-primary font-medium">Rendering preview...</span>
+            <span className="text-muted-foreground">{renderJob.progress}%</span>
           </div>
-          <div className="h-1 w-full overflow-hidden rounded-full bg-app-elevated">
-            <div
-              className="h-full rounded-full bg-accent transition-all"
-              style={{ width: `${renderJob.progress}%` }}
-            />
-          </div>
+          <Progress value={renderJob.progress} className="h-1.5" />
         </div>
       )}
 
       {/* Editor Layout */}
       <div className="flex flex-1 gap-4 overflow-hidden">
-        {/* Main area: Preview + Timeline */}
-        <div className="flex flex-1 flex-col gap-4">
+        {/* Main area */}
+        <div className="flex flex-[65%] flex-col gap-4">
           {/* Video Preview */}
-          <div className="panel flex flex-1 items-center justify-center overflow-hidden">
+          <div className="flex flex-1 items-center justify-center overflow-hidden rounded-xl border border-border bg-card">
             {previewUrl ? (
               <video
                 ref={videoRef}
                 src={previewUrl}
                 className="h-full w-full object-contain"
-                onTimeUpdate={handleTimeUpdate}
+                controls
+                preload="metadata"
+                onTimeUpdate={() => videoRef.current && setCurrentTime(videoRef.current.currentTime * 1000)}
                 onEnded={() => setPlaying(false)}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
               />
             ) : (
-              <div className="text-center">
-                <MonitorPlay size={32} className="mx-auto mb-3 text-content-muted" />
-                <p className="text-body text-content-secondary">
-                  {clip.title ?? "Untitled clip"}
-                </p>
-                <p className="mt-1 text-meta text-content-muted">
+              <div className="text-center space-y-2">
+                <MonitorPlay size={32} className="mx-auto text-muted-foreground" />
+                <p className="text-sm font-medium text-foreground">{clip.title ?? "Untitled clip"}</p>
+                <p className="text-xs text-muted-foreground">
                   {formatMs(startMs)} – {formatMs(endMs)} ({clipDurationS.toFixed(1)}s)
                 </p>
-                <p className="mt-3 text-meta text-content-muted">
-                  Click &quot;Render Preview&quot; to generate a preview with subtitles
-                </p>
+                <p className="text-xs text-muted-foreground">Click &quot;Preview&quot; to generate a preview with captions</p>
               </div>
             )}
           </div>
 
-          {/* Timeline Strip */}
-          <div className="panel p-4">
+          {/* Timeline */}
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-label font-medium text-content-primary">
-                Timeline
-              </h3>
-              <span className="font-mono text-meta text-content-muted">
+              <h3 className="text-sm font-medium">Timeline</h3>
+              <span className="font-mono text-xs text-muted-foreground">
                 {formatMs(currentTime)} / {formatMs(endMs)}
               </span>
             </div>
 
-            {/* Playback controls */}
             {previewUrl && (
               <div className="mb-3 flex items-center justify-center gap-2">
-                <button
-                  className="btn-ghost p-1.5"
-                  onClick={() => seekTo(startMs)}
-                  title="Jump to start"
-                >
+                <Button variant="ghost" size="icon" onClick={() => seekTo(startMs)} title="Jump to start">
                   <SkipBack size={16} />
-                </button>
-                <button
-                  className="btn-secondary flex items-center gap-1 px-4 py-1.5"
-                  onClick={togglePlay}
-                >
-                  {playing ? <Pause size={14} /> : <Play size={14} />}
-                  {playing ? "Pause" : "Play"}
-                </button>
-                <button
-                  className="btn-ghost p-1.5"
-                  onClick={() => seekTo(endMs)}
-                  title="Jump to end"
-                >
+                </Button>
+                <Button variant="outline" size="sm" onClick={togglePlay} className="px-6">
+                  {playing ? <><Pause size={14} className="mr-1.5" />Pause</> : <><Play size={14} className="mr-1.5" />Play</>}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => seekTo(endMs)} title="Jump to end">
                   <SkipForward size={16} />
-                </button>
+                </Button>
               </div>
             )}
 
-            {/* Start/End controls */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1 block text-meta text-content-muted">
-                  Start (ms)
-                </label>
-                <input
+                <label className="mb-1 block text-xs text-muted-foreground">Start (ms)</label>
+                <Input
                   type="number"
                   value={startMs}
                   onChange={(e) => setStartMs(Number(e.target.value))}
-                  className="input-base w-full font-mono text-meta"
+                  className="font-mono text-xs"
                   min={0}
                   step={100}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-meta text-content-muted">
-                  End (ms)
-                </label>
-                <input
+                <label className="mb-1 block text-xs text-muted-foreground">End (ms)</label>
+                <Input
                   type="number"
                   value={endMs}
                   onChange={(e) => setEndMs(Number(e.target.value))}
-                  className="input-base w-full font-mono text-meta"
+                  className="font-mono text-xs"
                   min={startMs + 1000}
                   step={100}
                 />
@@ -370,104 +318,76 @@ export default function ClipEditorPage() {
           </div>
         </div>
 
-        {/* Inspector Panel */}
-        <div className="panel w-80 flex-shrink-0 overflow-y-auto">
-          <div className="border-b border-line px-4 py-3">
-            <h3 className="text-label font-medium text-content-primary">
-              Inspector
-            </h3>
-          </div>
-
-          {/* Tabs */}
-          <InspectorTabs activeTab={activeTab} onTabChange={setActiveTab} />
-
-          {/* Details section (always visible) */}
-          <div className="space-y-4 border-b border-line p-4">
-            <div>
-              <label className="mb-1.5 block text-label text-content-secondary">
-                Title
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="input-base w-full"
-                placeholder="Clip title"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-meta text-content-muted">Duration</label>
-                <p className="text-body text-content-primary">
-                  {clipDurationS.toFixed(1)}s
-                </p>
+        {/* Inspector */}
+        <div className="w-[35%] min-w-[280px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              {/* Title + meta */}
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-xs text-muted-foreground">Title</label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Clip title"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Duration</span>
+                    <p className="text-sm font-medium">{clipDurationS.toFixed(1)}s</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <div className="mt-0.5">
+                      <Badge variant="secondary">{clip.export_status}</Badge>
+                    </div>
+                  </div>
+                </div>
+                {previewUrl && (
+                  <div className="flex items-center gap-1.5 text-xs text-success">
+                    <CheckCircle2 size={13} />
+                    Preview ready
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="mb-1 block text-meta text-content-muted">Status</label>
-                <span className="status-pill bg-content-muted/10 text-content-muted">
-                  {clip.export_status}
-                </span>
-              </div>
-            </div>
 
-            {previewUrl && (
-              <div className="flex items-center gap-1.5 text-meta text-status-success">
-                <CheckCircle2 size={13} />
-                Preview rendered
-              </div>
-            )}
-          </div>
+              <Separator />
 
-          {/* Tab content */}
-          {activeTab === 0 && (
-            <SubtitleStylePanel
-              currentPresetId={subtitlePresetId}
-              onPresetChange={handleSubtitlePresetChange}
-            />
-          )}
-          {activeTab === 1 && (
-            <div className="p-4 text-meta text-content-muted">
-              <p>Framing controls (aspect ratio, crop mode) will be available in a future sprint.</p>
+              {/* Tab buttons */}
+              <div className="flex gap-1 rounded-lg bg-muted p-0.5">
+                {["Style", "Color"].map((tab, i) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(i)}
+                    className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      i === activeTab
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab content */}
+              {activeTab === 0 && (
+                <SubtitleStylePanel
+                  currentPresetId={subtitlePresetId}
+                  onPresetChange={handleSubtitlePresetChange}
+                />
+              )}
+              {activeTab === 1 && (
+                <ColorGradeControls
+                  currentGrade={gradeConfig}
+                  onGradeChange={handleGradeChange}
+                />
+              )}
             </div>
-          )}
-          {activeTab === 2 && (
-            <ColorGradeControls
-              currentGrade={gradeConfig}
-              onGradeChange={handleGradeChange}
-            />
-          )}
-          {activeTab === 3 && <ExportPanel clip={clip} />}
+          </ScrollArea>
         </div>
       </div>
-    </div>
-  );
-}
-
-function InspectorTabs({
-  activeTab,
-  onTabChange,
-}: {
-  activeTab: number;
-  onTabChange: (tab: number) => void;
-}) {
-  const tabs = ["Captions", "Frame", "Grade", "Export"];
-
-  return (
-    <div className="flex border-b border-line">
-      {tabs.map((tab, i) => (
-        <button
-          key={tab}
-          className={`flex-1 border-b-2 px-3 py-2 text-meta transition-colors ${
-            i === activeTab
-              ? "border-accent text-content-primary font-medium"
-              : "border-transparent text-content-muted hover:text-content-secondary"
-          }`}
-          onClick={() => onTabChange(i)}
-        >
-          {tab}
-        </button>
-      ))}
     </div>
   );
 }
