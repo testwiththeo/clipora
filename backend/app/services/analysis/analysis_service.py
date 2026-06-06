@@ -19,11 +19,11 @@ from app.services.analysis.scoring_service import score_windows, ScoredWindow
 logger = logging.getLogger(__name__)
 
 # Default scoring config
-DEFAULT_MIN_DURATION_S = 20
-DEFAULT_MAX_DURATION_S = 60
+DEFAULT_MIN_DURATION_S = 15
+DEFAULT_MAX_DURATION_S = 90
 DEFAULT_TARGET_DURATION_S = 40
-DEFAULT_TOP_N = 15
-DEFAULT_MIN_SCORE = 0.15
+DEFAULT_TOP_N = 20
+DEFAULT_MIN_SCORE = 0.12
 
 
 async def analyze_episode(
@@ -63,12 +63,8 @@ async def analyze_episode(
 
     logger.info(f"Analysis: loaded {len(segments)} transcript segments for {episode.id}")
 
-    # Step 2: Segment into windows
-    windows = segment_into_windows(
-        segments,
-        min_duration_s=target_clip_duration_min,
-        max_duration_s=target_clip_duration_max,
-    )
+    # Step 2: Segment into multi-tier windows (short, medium, long)
+    windows = segment_into_windows(segments)
 
     if not windows:
         raise RuntimeError("Could not create content windows from transcript.")
